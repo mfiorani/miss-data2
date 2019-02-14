@@ -10,9 +10,8 @@ library("keras")
 
 
 ###### GETTING THE DATASET
-setwd("C://Users//matteo.fiorani//Desktop//pjs//wine-quality")
 df <- read.csv("data//ann-train.data", sep = " ", header = F)
-# https://archive.ics.uci.edu/ml/datasets/Thyroid+Disease
+
 
 # ----------------------------------------------------------------
 # -------------------- F U N C T I O N S -------------------------
