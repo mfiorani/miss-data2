@@ -12,7 +12,6 @@ library("keras")
 ###### GETTING THE DATASET
 df <- read.csv("data//ann-train.data", sep = " ", header = F)
 
-
 # ----------------------------------------------------------------
 # -------------------- F U N C T I O N S -------------------------
 # ----------------------------------------------------------------
@@ -24,6 +23,7 @@ generate_data <- function(model_name, df, perc, rr, target_var, positive){
   pattern[index] <- 0
   amp <- ampute(df, prop = perc, mech = "MAR", patterns = pattern)
   miss <- ifelse(is.na(amp$amp[, eval(target_var)]), 1, 0)
+  label <- df[miss == 1, index]
 
   # MULTIPLE IMPUTATIONS WITH MI PACKAGE
   if(model_name == "mi"){
@@ -39,7 +39,11 @@ generate_data <- function(model_name, df, perc, rr, target_var, positive){
     cat(model_name, " imputations completed", fill = T)
 
     mi <- dfs$`chain:1`
+    mi$V3 <- round(((as.numeric(mi$V3) - 1) + (as.numeric(dfs$`chain:2`$V3) -1) + 
+                           (as.numeric(dfs$`chain:3`$V3) -1) + (as.numeric(dfs$`chain:4`$V3) -1)) / 4)
     mi <- mi[mi[, ncol(mi)] == T, index]
+    mi <- as.factor(mi)
+    levels(mi) <- levels(label)
   }
    
   # MULTIPLE IMPUTATIONS WITH MICE PACKAGE
@@ -48,7 +52,7 @@ generate_data <- function(model_name, df, perc, rr, target_var, positive){
     df_covariates_mi[, eval(target_var)][miss == 1] <- NA
 
     cat(model_name, " imputations", fill = T)
-    imp <- mice(df_covariates_mi, method = "logreg", m = 1, maxit = 1)
+    imp <- mice(df_covariates_mi, method = "logreg", m = 4, maxit = 5)
     imputations <- mice::complete(imp)
     cat(model_name, " imputations completed", fill = T)
     
@@ -119,7 +123,6 @@ generate_data <- function(model_name, df, perc, rr, target_var, positive){
     levels(mi) <- ll
   }
   
-  label <- df[miss == 1, index]
   try(cm_mi <- confusionMatrix(as.factor(mi), as.factor(label), positive = positive))
   
   cat(model_name, "saving data", fill = T)
@@ -164,8 +167,6 @@ n_batch <- 64
 n_split <- 0.3
 patience_lr <- 2
 patience_stop <- 6
-dr <- 0.1
-l2 <- 0.0001
 
 callbacks = list(
   callback_reduce_lr_on_plateau(
@@ -208,7 +209,7 @@ for(i in 1:repeats){
   }
 }
 
-write.csv(res, "results.csv")
+write.csv(res, "results2.csv")
 
 grouping <- quos(package, missing)
 oob <- summarise_SE(df = res, .95, statistic = oob_err, grouping = grouping)
